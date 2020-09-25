@@ -2067,6 +2067,9 @@ extra card field:
 	choice: planeswalker
 	choice: structure
 	choice: aetherprint
+	choice: mortal
+	choice: god
+	choice: totem
 	choice:
 		name: sparker colors
 		choice: white
@@ -2100,6 +2103,9 @@ extra card field:
 	choice: planeswalker
 	choice: structure
 	choice: aetherprint
+	choice: mortal
+	choice: god
+	choice: totem
 	choice:
 		name: sparker colors
 		choice: white
@@ -3159,6 +3165,9 @@ extra card style:
 			structure: structure.png
 			compass: compass.png
 			aetherprint: aetherprint.png
+			mortal: mortal.png
+			god: god.png
+			totem: totem.png
 			sparker colors white: planeswalker/wcorner.png
 			sparker colors blue: planeswalker/ucorner.png
 			sparker colors black: planeswalker/bcorner.png
@@ -3192,6 +3201,9 @@ extra card style:
 			structure: structure.png
 			compass: compass.png
 			aetherprint: aetherprint.png
+			mortal: mortal.png
+			god: god.png
+			totem: totem.png
 			sparker colors white: planeswalker/wcorner.png
 			sparker colors blue: planeswalker/ucorner.png
 			sparker colors black: planeswalker/bcorner.png

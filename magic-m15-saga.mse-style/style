@@ -136,6 +136,7 @@ init script:
 	four_boxes := {styling.chapter_textboxes == "four" or comma_count(styling.chapter_divider_coordinates) == ",,,"}
 	use_main_rarity := { contains(styling.mainframe_rarity, match: ".png")}
 	un_png := replace@(match:".png", replace: "")
+	ancestral_mana := { styling.ancestral_mana_symbols }
 	a_saga := {true}
 	is_nyx := {contains(styling.other_options, match:"nyx")}
 	is_vehicle := {contains(styling.other_options, match:"vehicle")}
@@ -154,6 +155,11 @@ set info style:
 			fill color:   rgb(255,255,255)
 			border color: rgb(0,0,0)
 ############################################################## Extra style options
+styling field:
+	type: boolean
+	name: discovery
+	description: Replaces the third chapter symbol with the "discover" symbol from Scriptures of Urshad.
+	initial: no
 styling field:
 	type: choice
 	name: chapter textboxes
@@ -243,6 +249,11 @@ styling field:
 	type: boolean
 	name: grey hybrid name
 	description: Use a grey background for the name and type line on hybrid cards. This is done on real cards.
+styling field:
+	type: boolean
+	name: ancestral mana symbols
+	description: Enables ancestral's modified generic mana.
+	initial: no
 styling field:
 	type: boolean
 	name: use guild mana symbols
@@ -954,7 +965,11 @@ extra card style:
 		height: 34
 		render style: image
 		z index: 5
-		image: {alt_chapters("3")}
+		image:
+			script:
+				if styling.discovery
+				then "discover.png"
+				else alt_chapters("3")
 	chapter 4:
 		left: 14
 		top: { if chapter4() == "" then 600 else chapter4() }

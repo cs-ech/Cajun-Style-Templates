@@ -166,6 +166,7 @@ init script:
 	}
 	
 	card_shape := { if styling.shifted_sorting then "shifted planeswalker" else "planeswalker" }
+	frame_version := { "future" }
 	
 	# Loyalty cost arrows
 	loyalty_image := {

@@ -49,8 +49,8 @@ init script:
 	#Should multicolor lands with basic land types have a colored name?
 	mask_multi_land_with_color := { styling.colored_multicolor_land_name }
 	
-	base_template_prefix := [card: "" nyx: "nyx/" miracle: "miracles/" promo: "promo/" crown: "legend/" cons:"conspiracy/" curtain: "curtains/" fnm: "fnm/", fnmpt: "paradox/", map: "maps/" energy: "energies/", mappt: "maps/" pt: "", slide: "masks/", slide2: "masks/", arrow: "arrows/", arrow2: "arrows/", arrow3: "arrows/", season: "season/" stamp: "" identity: "/magic-identity-new.mse-include/"]
-	shifted_template_prefix := [card: "shifted/" nyx: "nyx/" miracle: "shifted/" promo: "promo/" crown: "shifted/" cons:"conspiracy/" curtain: "curtains/" fnm:"fnm/", fnmpt: "paradox/", map: "maps/" energy: "energies/", mappt: "maps/" pt: "shifted/", slide: "shifted/", slide2: "shifted/", arrow: "arrows/", arrow2: "arrows/", arrow3: "arrows/", season: "season/" stamp: "shifted/" identity: "/magic-identity-new.mse-include/"]
+	base_template_prefix := [card: "" nyx: "nyx/" miracle: "miracles/" promo: "promo/" crown: "legend/" cons:"conspiracy/" curtain: "curtains/" fnm: "fnm/", fnmpt: "paradox/", map: "maps/" energy: "energies/", mappt: "maps/" pt: "", slide: "masks/", slide2: "masks/", arrow: "arrows/", arrow2: "arrows/", arrow3: "arrows/", season: "season/" stamp: "" identity: "/magic-identity-new.mse-include/" commandercrown: "commander/" cloud: "dreamwalk/"]
+	shifted_template_prefix := [card: "shifted/" nyx: "nyx/" miracle: "shifted/" promo: "promo/" crown: "shifted/" cons:"conspiracy/" curtain: "curtains/" fnm:"fnm/", fnmpt: "paradox/", map: "maps/" energy: "energies/", mappt: "maps/" pt: "shifted/", slide: "shifted/", slide2: "shifted/", arrow: "arrows/", arrow2: "arrows/", arrow3: "arrows/", season: "season/" stamp: "shifted/" identity: "/magic-identity-new.mse-include/" commandercrown: "crown.png" cloud: "cloud.png"]
 	template_prefix := { if is_shifted() then shifted_template_prefix else base_template_prefix }
 	template_suffix := [card: "card.jpg" nyx: "nyx.png" miracle: "miracle.png" promo: "card.jpg" crown: "crown.png" cons:"cons.png" curtain: "card.png" fnm:"card.png", fnmpt: "pt.png", map: "card.png", energy: "card.png", mappt: "pt.png" pt: "pt.png", slide: "slide.png", slide2: "slide2.png", stamp: "stamp.jpg", arrow: "arrow.png", arrow2: "arrow2.png", arrow3: "arrow3.png", season: "flag.png" identity: "identity.png"]
 	template      := { crown_lead(type) + template_prefix()[type] + input + crown_follow(type) + template_suffix[type] }
@@ -58,7 +58,7 @@ init script:
 	# Use land templates for previews because they show more contrast
 	hybrid_previews := "land,hybrid"
 	
-	landless := {if input == "nyx" or input == "energy" or input == "season" or input == "cons" or input == "arrow" or input == "crown" or input == "nyxcrown" then true else false}
+	landless := {if input == "nyx" or input == "energy" or input == "season" or input == "cons" or input == "arrow" or input == "crown" or input == "nyxcrown" or input == "commandercrown" or input == "cloud" then true else false}
 	
 	crown_lead := {
 		if input != "crown" then ""
@@ -87,6 +87,7 @@ init script:
 	arrow_background_2 := { color_background(type:"arrow2",     base_hybrid:pt_hybrid) }
 	arrow_background_3 := { color_background(type:"arrow3",     base_hybrid:pt_hybrid) }
 	crown_background := { color_background(type:"crown", base_hybrid: card_hybrid)}
+	commander_crown_background := { color_background(type:"commandercrown", base_hybrid: card_hybrid)}
 	curtain_background := { color_background(type:"curtain", base_hybrid: card_hybrid)}
 	cons_background := { color_background(type:"cons", base_hybrid: card_hybrid)}
 	background_slide := { color_background(type:"slide", base_hybrid: card_hybrid)}
@@ -127,6 +128,8 @@ init script:
 	is_map := { chosen(styling.frames, choice: "map") }
 	is_season := { chosen(styling.frames, choice: "season") and not is_map() }
 	is_legend := {not is_map() and (chosen(styling.frames, choice: "legend") or (set.auto_legends and contains(card.super_type, match:"Legendary"))) }
+	is_commander := {not is_map() and chosen(styling.frames, choice: "commander") }
+	is_dreamwalk := {not is_map() and chosen(styling.frames, choice: "dreamwalk") }
 	is_full_art := {chosen(styling.frames, choice:"fullart") and not is_map() and not is_clear()}
 	is_expanded_art := {not is_map() and not is_clear() and contains(styling.frames, match:"less art")}
 	is_borderless := {not is_map() and not is_clear() and chosen(styling.frames, choice:"borderless art")}
@@ -240,10 +243,12 @@ styling field:
 	choice: mutate
 	choice: fnm promo
 	choice: planeshifted
+	choice: commander
 	choice: legend
 	choice: season
 	choice: conspiracy
 	choice: draft matters
+	choice: dreamwalk
 	choice: miracle
 	choice: vehicle
 	choice: nyx
@@ -419,7 +424,7 @@ card style:
 		top width:    17
 		bottom width: 18
 		z index: 4
-		mask: { (if is_puma() then "puma_" else "") + (if is_legend() then "crown_border" else "border_mask") + (if card.border_color == rgb(200,200,200) then "_silver" else "") + ".png" }
+		mask: { if is_commander() then "commander_border.png" else (if is_puma() then "puma_" else "") + (if is_legend() then "crown_border" else "border_mask") + (if card.border_color == rgb(200,200,200) then "_silver" else "") + ".png" }
 	card color:
 		left:	0
 		top:	0
@@ -990,6 +995,13 @@ extra card field:
 	save value: false
 	show statistics: false
 extra card field:
+	type: choice
+	name: cloud
+	script: card.card_color
+	editable: false
+	save value: false
+	show statistics: false
+extra card field:
 	type: text
 	name: promo label
 	save value: true
@@ -1256,10 +1268,19 @@ extra card style:
 		width: 375
 		height: 523
 		render style: image
-		image: {if is_clear() then "legend/xcrown.png" else if is_fnm() then set_mask(image:crown_background(), mask:"legend/fnm_mask.png") else crown_background()}
+		image: {if is_commander() then commander_crown_background() else if is_clear() then "legend/xcrown.png" else if is_fnm() then set_mask(image:crown_background(), mask:"legend/fnm_mask.png") else crown_background()}
 		z index: 5
 		visible: {is_legend() and not is_map()}
 		mask: {if is_legend() and (is_curtains() or is_expanded_art() or is_puma()) then "curtainmask.png" else if is_season() then "crown_season_mask.png" else ""}
+	cloud:
+		left: 0
+		top: 0
+		width: 375
+		height: 423
+		render style: image
+		image: {if is_clear() then "dreamwalk/xcloud.png" else card_cloud()}
+		z index: 1
+		visible: {is_dreamwalk() and not is_map()}
 	curtain:
 		left: 0
 		top: 0

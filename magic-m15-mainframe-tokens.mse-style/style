@@ -38,8 +38,8 @@ init script:
 	# Load scripts for image box
 	include file: /magic-default-image.mse-include/scripts
 	
-	template_prefix := [card: "" card2: "" card3: "" card4: "nyx/" card5: "nyx/" card6:"nyx/" card7: "m20/" card8: "m20/" card9: "m20/" pt:""]
-	template_suffix := [card: "card.jpg", card2: "card2.jpg", card3: "card3.jpg", card4: "nyx.png", card5: "card2.jpg", card6: "card3.jpg", card7: "card.png", card8: "card2.png", card9: "card3.png", pt: "pt.png"]
+	template_prefix := [card: "" card2: "" card3: "" card4: "nyx/" card5: "nyx/" card6:"nyx/" card7: "m20/" card8: "m20/" card9: "m20/" pt:"" cloud: "dreamwalk/"]
+	template_suffix := [card: "card.jpg", card2: "card2.jpg", card3: "card3.jpg", card4: "nyx.png", card5: "card2.jpg", card6: "card3.jpg", card7: "card.png", card8: "card2.png", card9: "card3.png", pt: "pt.png", cloud: "cloud.png"]
 	template      := { template_prefix[type] + (if is_m20() and input == "w" and (contains(card.card_color, match:"multicolor") or contains(card.card_color, match:"hybrid")) then "h" else input) + template_suffix[type] }
 	land_template := { template_prefix[type] + (if input == "a" then "c" else if is_m20() and input == "w" then "h" else input) + template_suffix[type] }
 	
@@ -64,6 +64,7 @@ init script:
 	is_clear := {contains(styling.frames, match: "clear")}
 	mtgo_abil := {contains(styling.frames, match: "MTGO Ability") and not is_m20()}
 	is_legend := {(contains(styling.frames, match: "legend") or (set.auto_legends and contains(card.super_type, match:"Legendary")))}
+	is_dreamwalk := {contains(styling.frames, match: "dreamwalk")}
 	is_nyx := {contains(styling.frames, match: "nyx") and not is_clear() and not is_m20()}
 	is_vehicle := {contains(styling.frames, match: "vehicle") and not is_m20()}
 	is_copy := {contains(styling.frames, match: "copy")}
@@ -105,6 +106,7 @@ styling field:
 	choice: copy
 	choice: tall
 	choice: legendary
+	choice: dreamwalk
 	choice: clear
 	choice: M20
 	choice: MTGO Ability
@@ -506,6 +508,13 @@ extra card field:
 	show statistics: false
 extra card field:
 	type: choice
+	name: dreamwalk cloud
+	choice: cloud
+	editable: false
+	save value: false
+	show statistics: false
+extra card field:
+	type: choice
 	name: flavor bar
 	choice: bar
 	editable: false
@@ -597,10 +606,19 @@ extra card style:
 		top: 0
 		width: 375
 		height: 523
-		z index: 3
+		z index: 0
 		render style: image
 		visible: {is_legend()}
 		image: {"crown" + (if is_m20() then "_m20") + ".png"}
+	dreamwalk cloud:
+		left: 0
+		top: { if is_tall() then 0 else if is_textless() then 134 else 59 }
+		width: 375
+		height: 523
+		z index: 0
+		render style: image
+		visible: {is_dreamwalk()}
+		image: { if is_clear() then "dreamwalk/xcloud.png" else "dreamwalk/ucloud.png" }
 	promo label:
 		left: 40
 		top: { if is_tall() then 262 else if is_textless() then 399 else 324 }

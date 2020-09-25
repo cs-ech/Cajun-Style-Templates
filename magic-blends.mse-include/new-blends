@@ -562,6 +562,55 @@ leveler_pt_hybrid3 := [
 ]
 
 ########################################################################
+# Dreamwalk Cloud
+########################################################################
+# Like P/T box but for the left half instead of the right
+
+horizontal_cloud_hybrid := [
+	1: { template(colors[0]) }
+	2: { template(colors[0]) }
+	3: { template(colors[0]) }
+	4: { template(colors[0]) }
+	5: { template(colors[0]) }
+	6: { template(colors[0]) }
+	7: { template(colors[0]) }
+]
+
+cloud_hybrid := [
+	radial: [
+		0: { template("c")       }
+		1: { template(colors[0]) }
+		2: { template(colors[1]) }
+		3: { template(colors[2]) }
+		4: { template(colors[2]) }
+		5: { linear_blend(
+			image1: template(colors[2])
+			image2: template(colors[3])
+			x1: 0, y1: -1.5
+			x2: 0, y2: 0.7
+		   )}
+		6: { linear_blend(
+			image1: template(colors[2])
+			image2: template(colors[3])
+			x1: 0, y1: -1.5
+			x2: 0, y2: 0.7
+		   )}
+		7: { template(colors[4]) }
+	]
+	horizontal: horizontal_cloud_hybrid
+	vertical: [
+		1: { template(colors[0]) }
+		2: { template(colors[1]) }
+		3: { template(colors[2]) }
+		4: { template(colors[3]) }
+		5: { template(colors[4]) }
+		6: { template(colors[5]) }
+		7: { template(colors[6]) }
+	]
+	overlay: overlay_hybrid
+]
+
+########################################################################
 # Textbox and typeline for FPM templates and Futureshifts
 ########################################################################
 
@@ -869,6 +918,7 @@ card_identity   := { color_background(type:"identity", base_hybrid:identity_hybr
 card_identity_2   := { color_background(type:"identity2", base_hybrid:identity_hybrid) }
 card_stamp      := { color_background(type:"stamp",    base_hybrid:stamp_hybrid) }
 card_stamp2     := { color_background(type:"stamp2",   base_hybrid:stamp_hybrid) }
+card_cloud      := { color_background(type:"cloud",    base_hybrid:cloud_hybrid) }
 
 flip_background := {
 	linear_blend(

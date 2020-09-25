@@ -33,6 +33,9 @@ init script:
 	# Use guild mana symbols?
 	guild_mana := { styling.use_guild_mana_symbols }
 	
+	# Ancestral generic mana
+	ancestral_mana := { styling.ancestral_mana_symbols }
+
 	card_shape := { "emblem" }
 	########## Mainframe stuff
 	use_main_rarity := { contains(set.mainframe_rarity_name, match: ".png")}
@@ -77,6 +80,11 @@ styling field:
 	type: text
 	name: flavor bar offset
 	description: Move the flavor bar down X pixels. Use negative to move up.
+styling field:
+	type: boolean
+	name: ancestral mana symbols
+	description: Enables ancestral's modified generic mana.
+	initial: no
 styling field:
 	type: boolean
 	name: use guild mana symbols
@@ -150,6 +158,19 @@ styling style:
 			yes: { symbol_variation(symbol: set.symbol, variation: "invertedcommon") }
 ############################################################## Card fields
 card style:
+	############################# Background stuff
+	border color:
+		left: 0
+		top : 0
+		width:	375
+		height:	523
+		radius: 18
+		left width:   17
+		right width:  17
+		top width:    17
+		bottom width: 18
+		z index: 4
+		mask: border_mask.png
 	############################# Name line
 	name:
 		left: 30

@@ -39,6 +39,9 @@ init script:
 	# Is the card a promo card?
 	is_promo := { styling.promo }
 
+	# Ancestral generic mana
+	ancestral_mana := { styling.ancestral_mana_symbols }
+
 	# Flavor Text Bar
 	bar_offset := {if styling_offset() == "-" then 0 else if styling_offset() != "" then -styling_offset() else 0}
 	styling_offset := { replace(styling.flavor_bar_offset, match:"(u|d)+", replace: "") }
@@ -54,6 +57,21 @@ set info style:
 			fill color:   rgb(255,255,255)
 			border color: rgb(0,0,0)
 ############################################################## Extra style options
+styling field:
+	type: boolean
+	name: use holofoil stamps
+	description: use holofoil stamps for rares
+	initial: yes
+styling field:
+	type: boolean
+	name: remove from autocount
+	description: Removes the automatic card number for specific cards, to allow for overcounted cards like in Planeswalker Decks.
+	initial: no
+styling field:
+	type: boolean
+	name: ancestral mana symbols
+	description: Enables ancestral's modified generic mana.
+	initial: no
 styling field:
 	type: boolean
 	name: use guild mana symbols
@@ -134,7 +152,7 @@ card style:
 		top width:    17
 		bottom width: 18
 		z index: 4
-		mask: border_mask.png
+		mask: { if contains(card.super_type, match:"Legendary") then "crown_border.png" else "border_mask.png" }
 	############################# Name line
 	name:
 		left: { if card.card_symbol=="none" then 32 else 50 }
@@ -355,6 +373,20 @@ extra card field:
 	script: "image"
 	save value: false
 	editable: false
+extra card field:
+	type: text
+	name: auto copyright
+	script: set.copyright
+	save value: false
+	editable: false
+	show statistics: false
+extra card field:
+	type: choice
+	name: crown
+	choice: crown
+	editable: false
+	save value: false
+	show statistics: false
 extra card style:
 	frame:
 		left:	0
@@ -401,6 +433,19 @@ extra card style:
 		render style: image
 		image: {if styling.overlay == "" then nil else styling.overlay + "/overlay.png"}
 		mask: { if is_rare() then "foil_mask_rare.png" else "foil_mask.png" }
+	auto copyright:
+		right: 350
+		top: { if card.pt != "" then 500 else 488 }
+		width: 140
+		height: 10
+		z index: 2
+		alignment: middle right shrink-overflow
+		visible: {set.automatic_copyright}
+		font:
+			name: Matrix
+			size: 7
+			color: white
+			weight: bold
 	flavor bar:
 		left: 0
 		top: { bar_equation() }
@@ -410,4 +455,13 @@ extra card style:
 		render style: image
 		image: bar.png
 		visible: { card.rule_text != "" and remove_tags(card.flavor_text) != "" }
+	crown:
+		left: 0
+		top: 0
+		width: 375
+		height: 523
+		z index: 2
+		render style: image
+		image: xcrown.png
+		visible: {contains(card.super_type, match:"Legendary") }
 

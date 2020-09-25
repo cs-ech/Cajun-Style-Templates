@@ -39,6 +39,39 @@ set field:
 	name: masterpiece symbol
 	description: The symbol for this sets masterpieces, click to edit
 set field:
+	type: choice
+	name: set type
+	description: Used in the JSON exporter
+	initial: expansion
+	choice: archenemy
+	choice: box
+	choice: core
+	choice: commander
+	choice: draft_innovation
+	choice: duel_deck
+	choice: expansion
+	choice: from_the_vault
+	choice: funny
+	choice: masters
+	choice: masterpiece
+	choice: memorabilia
+	choice: spellbook
+	choice: planechase
+	choice: premium_deck
+	choice: promo
+	choice: starter
+	choice: token
+	choice: treasure_chest
+	choice: vanguard
+set field:
+	type: text
+	name: parent set code
+	description: If this set is an expansion (e.g. promos or multiplayer), the set code of the base set.
+set field:
+	type: text
+	name: release date
+	description: Used in the JSON exporter
+set field:
 	type: info
 	name: Watermark links
 set field:
@@ -100,6 +133,9 @@ set field:
 	choice:
 		name: gold
 		color: rgb(200,180,0)
+	choice:
+		name: bronze
+		color: rgb(222,127,50)
 set field:
 	type: multiple choice
 	name: automatic reminder text

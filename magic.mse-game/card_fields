@@ -61,6 +61,9 @@ card field:
 	choice:
 		name: gold
 		color: rgb(200,180,0)
+	choice:
+		name: bronze
+		color: rgb(222,127,50)
 	show statistics: false
 	description: The border of the card; can be any solid color.
 card field:

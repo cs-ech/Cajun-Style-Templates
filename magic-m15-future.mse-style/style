@@ -117,6 +117,7 @@ init script:
 	}
 	
 	card_shape := { if styling.shifted_sorting then "shifted" else "normal" }
+	frame_version := { "future" }
 	is_unsorted := {styling.remove_from_autocount}
 	use_main_rarity := { contains(set.mainframe_rarity_name, match: ".png")}
 	un_png := replace@(match:".png", replace: "")

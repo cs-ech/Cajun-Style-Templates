@@ -79,6 +79,7 @@ init script:
 	}
 	
 	card_shape := { "split" }
+	frame_version := { "1993" }
 
 ############################################################## Set info fields
 set info style:

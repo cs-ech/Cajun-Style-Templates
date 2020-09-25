@@ -1,0 +1,379 @@
+mse version: 0.3.8
+short name: MTG JSON
+# when updating version here, also update option field and .meta.version
+full name: version 5.0.0
+position hint: 003
+icon: icon.png
+version: 2020-08-28
+installer group: magic/Export/json
+
+depends on:
+	package: magic.mse-game
+	version: 2009-07-23
+
+game: magic
+create directory: false
+file type: *.json|*.json|*.*|*.*
+
+# By Fenhl
+
+option field:
+	type: choice
+	name: version
+	choice: export template 5.0.0 for MTG JSON 5.0.1
+
+script:
+	# because find and contains don't work correctly
+	list_contains := { length(filter_list(filter: { input == match })) > 0 }
+
+	# gets the value of a single-line card notes command, or the default if the command isn't present
+	notes_command := {
+		if match(match: "!{input} ", remove_tags(card.notes)) then (
+			replace(match: "!{input} ", replace: "", filter_text(match: "!{input} [^\n]+", remove_tags(card.notes)))
+		) else default
+	}@(default: "")
+
+	build_type_line := {
+		trim(remove_tags(field("super_type")), match: " ") +
+		if trim(remove_tags(field("sub_type")), match: " ") == "" then "" else " — " +
+		trim(remove_tags(field("sub_type")), match: " ")
+	}
+
+	# returns a list of the colors a cost corresponds to, in alphabetical order
+	implicit_colors := {
+		(if contains(match: "B") then ["B"] else []) +
+		(if contains(match: "G") then ["G"] else []) +
+		(if contains(match: "R") then ["R"] else []) +
+		(if contains(match: "U") then ["U"] else []) +
+		(if contains(match: "W") then ["W"] else [])
+	}
+
+	# extracts the actual colors from a multiple-choice field like card color or indicator
+	frame_colors := {
+		(if chosen(choice: "black") then ["B"] else []) +
+		(if chosen(choice: "green") then ["G"] else []) +
+		(if chosen(choice: "red") then ["R"] else []) +
+		(if chosen(choice: "blue") then ["U"] else []) +
+		(if chosen(choice: "white") then ["W"] else [])
+	}
+
+	color_indicator := {
+		if (if is_back then has_identity_2() else has_identity()) then (
+			frame_colors(field("indicator"))
+		) else []
+	}
+
+	# checks if a card is an actual card (as opposed to a token etc)
+	is_card := { card.shape != "token" and card.shape != "emblem" and card.shape != "rulestip" and card.shape != "counter" and card.shape != "checklist" }
+
+	# checks if a card is part of the set's main card number sequence
+	is_main_set := {
+		not is_unsorted() and is_card() and not is_masterpiece()
+		and (set.sort_special_rarity != "separate numbering" or card.rarity != "special")
+	}@(is_card: is_card)
+
+	is_supertype := { #TODO config option
+		input == "Basic" or
+		input == "Legendary" or
+		input == "Ongoing" or
+		input == "Snow" or
+		input == "World"
+	}
+
+	land_types_to_colors := {
+		(if list_contains(match: "Swamp") then ["B"] else []) +
+		(if list_contains(match: "Forest") then ["G"] else []) +
+		(if list_contains(match: "Mountain") then ["R"] else []) +
+		(if list_contains(match: "Island") then ["U"] else []) +
+		(if list_contains(match: "Plains") then ["W"] else [])
+	}
+
+	text_color_identity := {
+		(if contains(match: "\{B}") or contains(match: "\{B/R}") or contains(match: "\{B/G}") or contains(match: "\{W/B}") or contains(match: "\{U/B}") or contains(match: "\{2/B}") or contains(match: "\{B/P}") then ["B"] else []) +
+		(if contains(match: "\{G}") or contains(match: "\{G/W}") or contains(match: "\{G/U}") or contains(match: "\{B/G}") or contains(match: "\{R/G}") or contains(match: "\{2/G}") or contains(match: "\{G/P}") then ["G"] else []) +
+		(if contains(match: "\{R}") or contains(match: "\{R/G}") or contains(match: "\{R/W}") or contains(match: "\{U/R}") or contains(match: "\{B/R}") or contains(match: "\{2/R}") or contains(match: "\{R/P}") then ["R"] else []) +
+		(if contains(match: "\{U}") or contains(match: "\{U/B}") or contains(match: "\{U/R}") or contains(match: "\{G/U}") or contains(match: "\{W/U}") or contains(match: "\{2/U}") or contains(match: "\{U/P}") then ["U"] else []) +
+		(if contains(match: "\{W}") or contains(match: "\{W/U}") or contains(match: "\{W/B}") or contains(match: "\{R/W}") or contains(match: "\{G/W}") or contains(match: "\{2/W}") or contains(match: "\{W/P}") then ["W"] else [])
+	}
+
+	parse_symbols := {
+		if length() == 0 then "" else
+		if length() >= 3 and input.1 == "/" then (
+			if match(substring(end: 3), match: "^[2WUBRG]/[WUBRG]$") then "\{{substring(end: 3)}}{parse_symbols(substring(start: 3))}" else
+			if input.0 == "H" then "\{{input.2}/P}{parse_symbols(substring(start: 3))}" else
+			(assert("unknown multipart mana symbol"; false); nil)
+		) else (
+			next_sym_regex := "^([TCWUBRGXV]|[0-9]+)(.*)$"
+			if match(match: next_sym_regex) then "\{{replace(match: next_sym_regex, replace: "\\1")}}{parse_symbols(replace(match: next_sym_regex, replace: "\\2"))}" else
+			(assert("unknown mana symbol"; false); nil)
+		)
+	}
+
+	# get rid of these annoying </sym><sym> tags used to disable sym-auto conversion
+	remove_anti_tags := {
+		if match(match: "</?sym>") then (
+			init := split_text(match: "</?sym>").0
+			init + (
+				if input[length(init) + 1] == "/"
+				then ((if sym_level <= 0 then "" else "</sym>") + remove_anti_tags(substring(begin: length(init) + 6), sym_level: sym_level - 1))
+				else ((if sym_level < 0 then "" else "<sym>") + remove_anti_tags(substring(begin: length(init) + 5), sym_level: sym_level + 1))
+			)
+		) else input
+	}@(sym_level: 0)
+
+	trim_multiline := (
+		replace@(match: "^\\s+", replace: "") +
+		replace@(match: "\\s+$", replace: "")
+	)
+
+	handle_text := { (
+		remove_anti_tags +
+		tag_contents@(tag: "<sym", contents: parse_symbols) +
+		(if ignore_soft_newlines then tag_contents@(tag: "<soft-line>", contents: replace@(match: "\n", replace: " ")) else { input }) +
+		remove_tags +
+		(if ignore_soft_newlines then replace@(match: "•", replace: "\n•") else { input }) +
+		replace@(match: "  +", replace: " ") + # remove double spaces that can be generated by replacing soft newlines with spaces
+		replace@(match: " ?\n ?", replace: "\n") + # remove spaces before/after newlines
+		trim_multiline +
+		replace@(match: "[“”]", replace: "\"") +
+		replace@(match: "[‘’]", replace: "'")
+	)() }@(ignore_soft_newlines: true)
+
+	# formats the given value as a JSON value of the given type
+	# note that arrays must replace their elements with [type, value] lists
+	# and objects must be replaced with lists of [key, value type, value] lists
+	to_json := {
+		[
+			array: {
+				if length() == 0 then "[]" else (
+					"[\n"
+					+ (
+						j := -1; #HACK: manually use a counter because `for each i:entry` syntax doesn't work for some reason
+						for each entry in input do (
+							j := j + 1;
+							"    "
+							+ replace(to_json(type: entry.0, entry.1), match: "\n", replace: "\n    ")
+							+ (if j + 1 < length() then "," else "")
+							+ "\n"
+						)
+					)
+					+ "]"
+				)
+			}
+			boolean: to_string
+			number: to_string
+			object: {
+				if length() == 0 then "\{}" else (
+					"\{\n"
+					+ (
+						for each i:entry in sort_list(order_by: { input.0 }) do (
+							"    "
+							+ to_json(type: "string", entry.0)
+							+ ": "
+							+ replace(to_json(type: entry.1, entry.2), match: "\n", replace: "\n    ")
+							+ (if i + 1 < length() then "," else "")
+							+ "\n"
+						)
+					)
+					+ "}"
+				)
+			}
+			string: {
+				"\""
+				+ (
+					replace@(match: "\\\\", replace: "\\\\\\\\")
+					+ replace@(match: "\"", replace: "\\\\\"")
+					+ replace@(match: "\n", replace: "\\\\n")
+				)()
+				+ "\""
+			}
+		][type]()
+	}
+
+	layout_to_json := {
+		[
+			"normal": "normal"
+			"double faced": "transform"
+		][card_shape()]
+	}
+
+	split_type_line := {
+		text := trim(remove_tags())
+		if text == "" then [] else split_text(text, match: " ")
+	}
+
+	watermarks := [
+		"mana symbol colorless": "colorless"
+		"mana symbol white": "white"
+		"mana symbol blue": "blue"
+		"mana symbol black": "black"
+		"mana symbol red": "red"
+		"mana symbol green": "green"
+		"other magic symbols story spotlight": "planeswalker"
+		"other magic symbols color spotlight": "planeswalker"
+		"xander hybrid mana W/U": "white-blue"
+		"xander hybrid mana U/B": "blue-black"
+		"xander hybrid mana B/R": "black-red"
+		"xander hybrid mana R/G": "red-green"
+		"xander hybrid mana G/W": "green-white"
+		"xander hybrid mana W/B": "white-black"
+		"xander hybrid mana U/R": "blue-red"
+		"xander hybrid mana B/G": "black-green"
+		"xander hybrid mana R/W": "red-white"
+		"xander hybrid mana G/U": "green-blue"
+	]
+
+	last_modified := {
+		sorted_cards := sort_list(set, order_by: { card.time_modified })
+		sorted_cards[length(sorted_cards) - 1].time_modified
+	}
+
+	# Strip bad punctuation from card names, used in export name
+	# from the CS/ECH exporter
+	strip_card_name :=
+		replace@(match: "’",replace: "'") + # replace bad apostrophe with good apostrophe
+		replace@(match: ":", replace: "") + # remove colons
+		replace@(match: ";", replace: "") + # remove semicolons
+		replace@(match: "\\.", replace: "") # remove periods
+
+	export_name := { strip_card_name(notes_command("exportname", default: card.name)) }
+
+	related_cards := {
+		result := []
+		for each related_card in split_text(notes_command("related"), match: ";") do (
+			if related_card != "" then (
+				related_card_export_name := replace(match: "[<\<].+>", replace: "", strip_card_name(related_card))
+				matching_cards := [] + for each iter_card in set do (
+					if export_name(card: iter_card) == related_card_export_name then [iter_card] else [] #TODO check back faces of DFCs
+				)
+				if length(matching_cards) != 1 then (
+					error("expected exactly 1 card matching !related entry {to_code(related_card_export_name)} for {to_code(card.name)}, got {length(matching_cards)}")
+				)
+				if not list_contains(result, match: matching_cards.0.name) then result := result + [matching_cards.0.name]
+			)
+		)
+		result
+	}
+
+	# generates the MTG JSON object for a card
+	card_part_to_json := {
+		supertypes := filter_list(split_type_line(field("super_type")), filter: is_supertype)
+		card_types := filter_list(split_type_line(field("super_type")), filter: { not is_supertype() })
+		subtypes := split_type_line(field("sub_type"))
+		text := if handle_text(field("special_text")) == "" then handle_text(field("rule_text")) else handle_text(field("special_text"))
+		colors := sort_list(implicit_colors(field("casting_cost")) + color_indicator()) #TODO Transguild Courier
+		ci := sort_list(colors + land_types_to_colors(subtypes) + text_color_identity(text), remove_duplicates: true) #TODO colors of other card parts
+		#TODO modify colors to account for Ghostfire/Devoid (here because these don't affect color identity)
+		artist := notes_command("artist", default: field("illustrator"))
+		flavor := handle_text(field("flavor_text"), ignore_soft_newlines: false)
+		if match(artist, match: "^.+? *\\((?:[Cc]ard by |[Dd]esign:).*\\)$") then (
+			flavor := (if length(flavor) > 0 then flavor + "\n" else "") + "Designed by " + substring(artist, begin: length(filter_text(artist, match: "^.+? *\\((?:[Cc]ard by |[Dd]esign:)")), end: length(artist) - 1)
+			artist := trim(substring(filter_text(artist, match: "^.+? *\\("), end: length(filter_text(artist, match: "^.+? *\\(")) - 1))
+		) else if match(artist, match: "^.+? *\\| *[Dd]esigned (?:by|with) .*$") then (
+			flavor := (if length(flavor) > 0 then flavor + "\n" else "") + (if match(artist, match: "^.+? *\\| *[Dd]esigned with .*$") then "Designed with " else "Designed by ") + substring(artist, begin: length(filter_text(artist, match: "^.+? *\\| *[Dd]esigned (?:by|with) ")))
+			artist := trim(substring(filter_text(artist, match: "^.+? *\\|"), end: length(filter_text(artist, match: "^.+? *\\|")) - 1))
+		)
+		[
+			["artist", "string", artist]
+			#TODO asciiName
+			["availability", "array", []]
+			["borderColor", "string", (
+				if card.border_color == rgb(0, 0, 0) then "black" else
+				if card.border_color == rgb(128, 128, 128) then "silver" else
+				if card.border_color == rgb(200, 180, 0) then "gold" else
+				if card.border_color == rgb(222, 127, 50) then "bronze" else
+				if card.border_color == rgb(255, 255, 255) then "white" else
+				(assert("unknown border color"; false); nil)
+			)] #TODO borderless
+			["colorIdentity", "array", [] + for each color in ci do [["string", color]]]
+		] + (if color_indicator() == [] then [] else [["colorIndicator", "array", [] + for each color in color_indicator() do [["string", color]]]]) + [
+			["colors", "array", [] + for each color in colors do [["string", color]]]
+			["convertedManaCost", "number", cmc(field("casting_cost"))] #TODO split card handling
+			#TODO? exportname
+			#TODO faceConvertedManaCost (split cards only)
+		] + (if card_shape() == "double faced" then [["faceName", "string", handle_text(field("name"))]] else []) + [
+			#TODO flavorName
+		] + (if length(flavor) > 0 then [["flavorText", "string", flavor]] else []) + [
+			#TODO frameEffects
+			["frameVersion", "string", frame_version()]
+			#TODO hand
+			#TODO hasAlternativeDeckLimit
+			["hasFoil", "boolean", false] #TODO true if foil decoration is used
+			["hasNonFoil", "boolean", true] #TODO false if foil decoration is used
+			#TODO isFullArt (check shape)
+			["isOnlineOnly", "boolean", false]
+			#TODO isOversized (check shape)
+			#TODO isPromo
+			#TODO isReserved (hardcoded list)
+			#TODO isStarter (ask MTG JSON team how exactly this field works)
+			["isStorySpotlight", "boolean", field("watermark") != "none" and watermarks[field("watermark")] == "planeswalker"]
+			#TODO isTextless
+			#TODO isTimeshifted
+			#TODO keywords
+			["layout", "string", layout_to_json()]
+			#TODO leadershipSkills
+			#TODO life
+		] + (if field("loyalty") == "" then [] else [["loyalty", "string", field("loyalty")]]) + [
+		] + (if field("casting_cost") == "" then [] else [["manaCost", "string", parse_symbols(field("casting_cost"))]]) + [
+			["name", "string", handle_text(field("name"))] #TODO update to MTG JSON 5 for split/DFC/meld cards
+			["number", "string", to_string(card_number())] #TODO a/b for front/back
+		] + (if text == "" then [] else [["originalText", "string", text]]) + [
+			["originalType", "string", build_type_line()]
+			#TODO otherFaceIds
+		] + (if field("power") == "" or field("toughness") == "" then [] else [["power", "string", field("power")]]) + [
+			#TODO promoTypes (isDateStamped)
+			["rarity", "string", ["basic land": "common", common: "common", uncommon: "uncommon", rare: "rare", "mythic rare": "mythic", special: "mythic"][card.rarity]]
+		] + (if is_token then [["reverseRelated", "array", [] + for each related_card_name in related_cards() do [["string", related_card_name]]]] else []) + [
+			["rulings", "array", []]
+			#TODO setCode
+			#TODO side
+		] + (if field("power") == "" or field("toughness") != "" then [] else [["stability", "string", field("power")]]) + [
+			["subtypes", "array", [] + for each t in subtypes do [["string", t]]] #TODO planes
+			["supertypes", "array", [] + for each t in supertypes do [["string", t]]]
+		] + (if text == "" then [] else [["text", "string", text]]) + [
+		] + (if field("power") == "" or field("toughness") == "" then [] else [["toughness", "string", field("toughness")]]) + [
+			["type", "string", build_type_line()]
+			["types", "array", [] + for each t in card_types do [["string", t]]]
+			#TODO uuid
+			#TODO variations
+		] + (if field("watermark") == "none" then [] else [["watermark", "string", watermarks[field("watermark")]]]) + [
+		]
+	}@(field: { card[input] }, is_back: false, is_token: false)
+
+	# the field function used in card_part_to_json for back faces of DFCs
+	back_field := { card["{input}_2"] }
+
+	card_to_json := {
+		if is_card() then (
+			if card_shape() == "double faced" then [
+				["object", card_part_to_json()],
+				["object", card_part_to_json(field: back_field, is_back: true)]
+			]
+			else [["object", card_part_to_json()]]
+		) else []
+	}
+
+	token_to_json := {
+		if is_card() then [] else [["object", card_part_to_json(is_token: true)]]
+	}
+
+	to_json(type: "object", [
+		["data", "object", [
+			["baseSetSize", "number", number_of_items(in: set, filter: is_main_set)]
+			["cards", "array", [] + for each card in sort_list(set, order_by: card_number) do card_to_json()]
+			["code", "string", set.set_code] #TODO make optional?
+			["custom", "boolean", true]
+			["isOnlineOnly", "boolean", true]
+			["name", "string", set.title] #TODO make optional?
+		] + (if set.parent_set_code == "" then [] else [["parentCode", "string", set.parent_set_code]]) + [
+		] + (if set.release_date == "" then [] else [["releaseDate", "string", set.release_date]]) + [ #TODO default to today, use date picker
+			["tokens", "array", [] + for each card in sort_list(set, order_by: card_number) do token_to_json()]
+			["totalSetSize", "number", number_of_items(in: set, filter: is_card)]
+			#TODO translations (options)
+			["type", "string", set.set_type]
+		]]
+		["meta", "object", [
+			["date", "string", substring(to_string(last_modified(set.cards)), end: 10)]
+			["version", "string", "5.0.0"]
+		]]
+	]) + "\n"

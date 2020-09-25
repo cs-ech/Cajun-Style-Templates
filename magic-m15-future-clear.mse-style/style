@@ -45,6 +45,9 @@ init script:
 		
 	card_shape := { if styling.shifted_sorting then "shifted" else "normal" }
 	is_unsorted := {styling.remove_from_autocount}
+
+	frame_version := { "future" }
+
 ############################################################## Set info fields
 set info style:
 	symbol:

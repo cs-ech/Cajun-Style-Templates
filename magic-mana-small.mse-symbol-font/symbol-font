@@ -141,6 +141,10 @@ symbol:
 symbol:
 	code: S
 	image: mana_s.png
+###################################################################################### Runic Mana
+symbol:
+	code: V
+	image: mana_v.png
 ###################################################################################### Tap Symbols
 symbol:
 	code: T
@@ -888,3 +892,7 @@ insert symbol menu:
 			item: 8 loyalty
 			item: 9 loyalty
 			item: X loyalty
+	item:
+		name: more
+		item: chaos
+		item: V
